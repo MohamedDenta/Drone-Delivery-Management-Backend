@@ -22,6 +22,29 @@ A robust, production-grade backend for managing autonomous drone deliveries. Bui
 - **Observability**: OpenTelemetry, Jaeger, Prometheus, Grafana
 - **Infrastructure**: Docker Compose
 
+## ⚡ Getting Started
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) & Docker Compose
+- [Go 1.22+](https://go.dev/dl/)
+- [golang-migrate](https://github.com/golang-migrate/migrate) CLI
+
+### Quick Start
+Follow these steps to get the system up and running:
+
+1. **Start Infrastructure**: Start PostgreSQL, Redis, RabbitMQ, and Observability tools:
+   ```bash
+   make docker-up
+   ```
+2. **Database Migrations**: Initialize the database schema:
+   ```bash
+   make migrate-up
+   ```
+3. **Run Application**: Start the backend server:
+   ```bash
+   make run
+   ```
+
 ## ⚙️ Configuration
 The application is configured using environment variables:
 

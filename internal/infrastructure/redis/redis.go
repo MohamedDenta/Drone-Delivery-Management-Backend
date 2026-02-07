@@ -62,5 +62,8 @@ func (c *Client) GetDroneLocation(ctx context.Context, id string) (float64, floa
 }
 
 func (c *Client) Close() error {
+	if c.rdb == nil {
+		return nil
+	}
 	return c.rdb.Close()
 }

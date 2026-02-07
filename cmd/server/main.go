@@ -52,15 +52,17 @@ func main() {
 	redisClient, err := infra_redis.NewClient(cfg.RedisURL, "", 0)
 	if err != nil {
 		log.Printf("failed to connect to redis: %v", err)
+	} else {
+		defer redisClient.Close()
 	}
-	defer redisClient.Close()
 
 	// 5. Init RabbitMQ
 	rabbitClient, err := infra_rmq.NewClient(cfg.RabbitMQURL)
 	if err != nil {
 		log.Printf("failed to connect to rabbitmq: %v", err)
+	} else {
+		defer rabbitClient.Close()
 	}
-	defer rabbitClient.Close()
 
 	// 6. Init Services
 	droneService := service.NewDroneService(repo, redisClient)

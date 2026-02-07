@@ -60,3 +60,17 @@ func (h *OrderHandler) UpdateStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, order)
 }
+func (h *OrderHandler) GetOrder(c *gin.Context) {
+	id := c.Param("id")
+	order, err := h.orderService.GetOrder(id)
+	if err != nil {
+		if err == domain.ErrNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
+}

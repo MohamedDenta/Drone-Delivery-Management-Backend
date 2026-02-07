@@ -32,6 +32,7 @@ func SetupRouter(
 
 		// Order Routes
 		api.POST("/orders", orderHandler.CreateOrder)
+		api.GET("/orders/:id", orderHandler.GetOrder)
 		api.POST("/orders/:id/status", orderHandler.UpdateStatus)
 	}
 
