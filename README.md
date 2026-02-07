@@ -78,9 +78,18 @@ Access the dashboards to monitor the system:
 ### HTTP API (REST)
 - `POST /auth/token` - Login (Admin/User/Drone)
 - `POST /api/v1/drones` - Register drone
+- `POST /api/v1/drones/location` - Update location & heartbeat (REST fallback)
+- `POST /api/v1/drones/jobs/reserve` - Manually reserve the next pending order
 - `POST /api/v1/orders` - Create order (Asynchronous via RabbitMQ)
+- `GET /api/v1/orders/:id` - Fetch order details (Status polling)
+- `POST /api/v1/orders/:id/status` - Manually update order state
 
 ### gRPC API (Streaming)
 - `rpc ReportLocation(stream LocationRequest) returns (stream LocationResponse)`
   - Used by drones for high-frequency location updates.
-  - Updates are cached in Redis and persisted to Postgres.
+  - Updates are cached in Redis, persisted to Postgres, and refresh the drone's **Heartbeat** (30s TTL).
+
+## ⚙️ Background Workers
+The system runs background processes for automation and reliability:
+- **Order Dispatcher**: Consumes `order.created` events from RabbitMQ and assigns them to idle drones using atomic SQL locks.
+- **Heartbeat Monitor**: Periodically scans Redis for expired drone heartbeats (drones missing for >30s) and marks them as `OFFLINE`, triggering immediate order recovery.
