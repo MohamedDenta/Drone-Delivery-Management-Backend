@@ -13,6 +13,7 @@ const (
 	DroneStatusIdle       DroneStatus = "IDLE"
 	DroneStatusDelivering DroneStatus = "DELIVERING"
 	DroneStatusBroken     DroneStatus = "BROKEN"
+	DroneStatusOffline    DroneStatus = "OFFLINE"
 )
 
 // Drone represents a delivery drone in the system
@@ -23,6 +24,7 @@ type Drone struct {
 	Latitude  float64     `json:"latitude"`
 	Longitude float64     `json:"longitude"`
 	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
 }
 
 // OrderStatus represents the lifecycle state of an order

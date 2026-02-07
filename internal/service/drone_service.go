@@ -1,10 +1,13 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/domain"
+	infra "github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/infrastructure/redis"
 	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/repository"
 	"github.com/segmentio/ksuid"
 )
@@ -15,14 +18,16 @@ type DroneStatusObserver interface {
 }
 
 type DroneService struct {
-	repo      repository.DroneRepository
-	observers []DroneStatusObserver
+	repo        repository.DroneRepository
+	redisClient *infra.Client
+	observers   []DroneStatusObserver
 }
 
-func NewDroneService(repo repository.DroneRepository) *DroneService {
+func NewDroneService(repo repository.DroneRepository, redisClient *infra.Client) *DroneService {
 	return &DroneService{
-		repo:      repo,
-		observers: make([]DroneStatusObserver, 0),
+		repo:        repo,
+		redisClient: redisClient,
+		observers:   make([]DroneStatusObserver, 0),
 	}
 }
 
@@ -58,6 +63,17 @@ func (s *DroneService) UpdateLocation(id string, lat, lon float64) error {
 	}
 	drone.Latitude = lat
 	drone.Longitude = lon
+
+	// Cache Location and Heartbeat in Redis
+	if s.redisClient != nil {
+		if err := s.redisClient.SetDroneLocation(context.Background(), id, lat, lon); err != nil {
+			log.Printf("Failed to cache drone location: %v", err)
+		}
+		if err := s.redisClient.SetDroneHeartbeat(context.Background(), id); err != nil {
+			log.Printf("Failed to set drone heartbeat: %v", err)
+		}
+	}
+
 	return s.repo.UpdateDrone(drone)
 }
 

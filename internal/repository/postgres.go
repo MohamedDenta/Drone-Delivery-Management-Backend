@@ -10,7 +10,9 @@ import (
 type DroneRepository interface {
 	CreateDrone(drone *domain.Drone) error
 	GetDroneByID(id string) (*domain.Drone, error)
-	GetDroneByName(name string) (*domain.Drone, error) // For auth
+	GetDroneByName(name string) (*domain.Drone, error)
+	GetIdleDrones() ([]*domain.Drone, error)
+	GetActiveDrones() ([]*domain.Drone, error)
 	UpdateDrone(drone *domain.Drone) error
 }
 
@@ -19,6 +21,7 @@ type OrderRepository interface {
 	GetOrderByID(id string) (*domain.Order, error)
 	GetActiveOrderByDroneID(droneID string) (*domain.Order, error)
 	GetNextPendingOrder() (*domain.Order, error)
+	ClaimNextPendingOrder(droneID string) (*domain.Order, error)
 	UpdateOrder(order *domain.Order) error
 }
 
@@ -77,6 +80,46 @@ func (r *PostgresRepository) GetDroneByName(name string) (*domain.Drone, error) 
 	return &drone, err
 }
 
+func (r *PostgresRepository) GetIdleDrones() ([]*domain.Drone, error) {
+	query := `SELECT id, name, status, latitude, longitude, created_at, updated_at FROM drones WHERE status = 'IDLE'`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var drones []*domain.Drone
+	for rows.Next() {
+		var drone domain.Drone
+		err := rows.Scan(&drone.ID, &drone.Name, &drone.Status, &drone.Latitude, &drone.Longitude, &drone.CreatedAt, &drone.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		drones = append(drones, &drone)
+	}
+	return drones, nil
+}
+
+func (r *PostgresRepository) GetActiveDrones() ([]*domain.Drone, error) {
+	query := `SELECT id, name, status, latitude, longitude, created_at, updated_at FROM drones WHERE status IN ('IDLE', 'DELIVERING')`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var drones []*domain.Drone
+	for rows.Next() {
+		var drone domain.Drone
+		err := rows.Scan(&drone.ID, &drone.Name, &drone.Status, &drone.Latitude, &drone.Longitude, &drone.CreatedAt, &drone.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		drones = append(drones, &drone)
+	}
+	return drones, nil
+}
+
 func (r *PostgresRepository) UpdateDrone(drone *domain.Drone) error {
 	query := `UPDATE drones SET status = $1, latitude = $2, longitude = $3 WHERE id = $4`
 	_, err := r.db.Exec(query, drone.Status, drone.Latitude, drone.Longitude, drone.ID)
@@ -121,6 +164,32 @@ func (r *PostgresRepository) GetNextPendingOrder() (*domain.Order, error) {
 	query := `SELECT id, status, origin_lat, origin_lon, dest_lat, dest_lon, drone_id, created_at, updated_at 
 	          FROM orders WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 1`
 	row := r.db.QueryRow(query)
+
+	var order domain.Order
+	err := row.Scan(&order.ID, &order.Status, &order.OriginLat, &order.OriginLon, &order.DestLat, &order.DestLon, &order.DroneID, &order.CreatedAt, &order.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrNotFound
+	}
+	return &order, err
+}
+
+func (r *PostgresRepository) ClaimNextPendingOrder(droneID string) (*domain.Order, error) {
+	// Atomic reservation using FOR UPDATE SKIP LOCKED
+	// This finds the next pending order, locks it (skipping already locked ones), and updates it.
+	query := `
+		UPDATE orders
+		SET status = 'RESERVED', drone_id = $1, updated_at = NOW()
+		WHERE id = (
+			SELECT id
+			FROM orders
+			WHERE status = 'PENDING'
+			ORDER BY created_at ASC
+			FOR UPDATE SKIP LOCKED
+			LIMIT 1
+		)
+		RETURNING id, status, origin_lat, origin_lon, dest_lat, dest_lon, drone_id, created_at, updated_at
+	`
+	row := r.db.QueryRow(query, droneID)
 
 	var order domain.Order
 	err := row.Scan(&order.ID, &order.Status, &order.OriginLat, &order.OriginLon, &order.DestLat, &order.DestLon, &order.DroneID, &order.CreatedAt, &order.UpdatedAt)

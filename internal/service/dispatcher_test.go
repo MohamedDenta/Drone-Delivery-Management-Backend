@@ -21,20 +21,21 @@ func TestReserveJob_Success(t *testing.T) {
 		Status: domain.DroneStatusIdle,
 	}
 
+	mockDroneRepo.On("GetDroneByID", droneID.String()).Return(drone, nil)
+
 	orderID := ksuid.New()
-	order := &domain.Order{
+	// Claimed Order (what the DB returns after atomic update)
+	claimedOrder := &domain.Order{
 		ID:        orderID,
-		Status:    domain.OrderStatusPending,
+		Status:    domain.OrderStatusReserved,
+		DroneID:   &droneID,
 		UpdatedAt: time.Now(),
 	}
 
-	mockDroneRepo.On("GetDroneByID", droneID.String()).Return(drone, nil)
-	mockOrderRepo.On("GetNextPendingOrder").Return(order, nil)
+	// Expect Atomic Claim
+	mockOrderRepo.On("ClaimNextPendingOrder", droneID.String()).Return(claimedOrder, nil)
 
-	// Expect Order Update
-	mockOrderRepo.On("UpdateOrder", mock.MatchedBy(func(o *domain.Order) bool {
-		return o.Status == domain.OrderStatusReserved && *o.DroneID == droneID
-	})).Return(nil)
+	// UpdateOrder should NOT be called in success path (it's handled by ClaimNextPendingOrder)
 
 	// Expect Drone Update
 	mockDroneRepo.On("UpdateDrone", mock.MatchedBy(func(d *domain.Drone) bool {

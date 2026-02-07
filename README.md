@@ -4,51 +4,44 @@ A robust, production-grade backend for managing autonomous drone deliveries. Bui
 
 ## 🚀 Features
 
-- **JWT Authentication**: Secure role-based access for Admins, Users, and Drones.
-- **Drone Management**: Real-time location tracking and status updates.
-- **Order Lifecycle**: ACID-compliant state transitions (Pending -> Reserved -> Delivered).
-- **Dispatcher System**: Atomic job assignment to idle drones.
+- **gRPC Streaming**: High-performance real-time location updates via bidirectional streams.
+- **Redis Caching**: Sub-millisecond drone location lookups and reduced DB load.
+- **RabbitMQ Async Dispatching**: Decoupled order processing and automated job assignment.
+- **Offline Drone Detection**: Automated heartbeat monitoring via Redis TTL and background recovery.
+- **Atomic Order Reservation**: Race-condition-free job assignment using Postgres `FOR UPDATE SKIP LOCKED`.
 - **Observability**: Full tracing and metrics with **OpenTelemetry**, **Jaeger**, and **Prometheus**.
 
 ## 🛠️ Tech Stack
 
-- **Language**: Go 1.21+
+- **Language**: Go 1.22+
 - **Framework**: [Gin](https://github.com/gin-gonic/gin)
+- **gRPC**: [Protobuf](https://github.com/protocolbuffers/protobuf) for real-time streaming
 - **Database**: PostgreSQL 16
+- **Caching**: Redis 7
+- **Message Broker**: RabbitMQ 3
 - **Observability**: OpenTelemetry, Jaeger, Prometheus, Grafana
 - **Infrastructure**: Docker Compose
 
-## ⚡ Getting Started
+## ⚙️ Configuration
+The application is configured using environment variables:
 
-### Prerequisites
-- Docker & Docker Compose
-- Go 1.21+
-- Make (optional, but recommended)
-
-### 1. Start Infrastructure
-Start PostgreSQL, Jaeger, Prometheus, Grafana and App:
-```bash
-make docker-up
-```
-
-### 2. Run Database Migrations
-Initialize the database schema:
-```bash
-make migrate-up
-
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | Postgres DSN | `postgres://user:password@localhost:5433/drone_delivery?sslmode=disable` |
+| `REDIS_URL` | Redis endpoint | `localhost:6379` |
+| `RABBITMQ_URL` | RabbitMQ AMQP URL | `amqp://user:password@localhost:5672/` |
+| `PORT` | HTTP Server Port | `8081` |
+| `OTEL_COLLECTOR_URL` | OTel Collector Endpoint | `localhost:4317` |
 
 ## 🧪 Verification & Testing
 
-We include a script to simulate a complete delivery flow (Register -> Heartbeat -> Create Order -> Reserve -> Deliver):
-
+We include a script to simulate a complete delivery flow:
 ```bash
 chmod +x scripts/test_flow.sh
 ./scripts/test_flow.sh
 ```
 
 ## 📊 Observability
-
 Access the dashboards to monitor the system:
 
 | Service | URL | Credentials |
@@ -59,14 +52,12 @@ Access the dashboards to monitor the system:
 
 ## 📝 API Reference
 
-### Authentication
+### HTTP API (REST)
 - `POST /auth/token` - Login (Admin/User/Drone)
+- `POST /api/v1/drones` - Register drone
+- `POST /api/v1/orders` - Create order (Asynchronous via RabbitMQ)
 
-### Drones
-- `POST /api/v1/drones` - Register new drone
-- `POST /api/v1/drones/location` - Update heartbeat/location
-- `POST /api/v1/drones/jobs/reserve` - Reserve pending order
-
-### Orders
-- `POST /api/v1/orders` - Create new order
-- `POST /api/v1/orders/:id/status` - Update order status
+### gRPC API (Streaming)
+- `rpc ReportLocation(stream LocationRequest) returns (stream LocationResponse)`
+  - Used by drones for high-frequency location updates.
+  - Updates are cached in Redis and persisted to Postgres.

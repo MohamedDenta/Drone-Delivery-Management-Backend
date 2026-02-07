@@ -15,6 +15,22 @@ func (m *MockDroneRepository) CreateDrone(drone *domain.Drone) error {
 	return args.Error(0)
 }
 
+func (m *MockDroneRepository) GetActiveDrones() ([]*domain.Drone, error) {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Drone), args.Error(1)
+}
+
+func (m *MockDroneRepository) GetIdleDrones() ([]*domain.Drone, error) {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Drone), args.Error(1)
+}
+
 func (m *MockDroneRepository) GetDroneByID(id string) (*domain.Drone, error) {
 	args := m.Called(id)
 	if args.Get(0) == nil {
@@ -56,6 +72,14 @@ func (m *MockOrderRepository) GetOrderByID(id string) (*domain.Order, error) {
 
 func (m *MockOrderRepository) GetNextPendingOrder() (*domain.Order, error) {
 	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Order), args.Error(1)
+}
+
+func (m *MockOrderRepository) ClaimNextPendingOrder(droneID string) (*domain.Order, error) {
+	args := m.Called(droneID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

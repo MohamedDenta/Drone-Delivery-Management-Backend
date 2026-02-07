@@ -12,7 +12,7 @@ import (
 
 func TestCreateOrder(t *testing.T) {
 	mockRepo := new(MockOrderRepository)
-	service := NewOrderService(mockRepo)
+	service := NewOrderService(mockRepo, nil)
 
 	mockRepo.On("CreateOrder", mock.AnythingOfType("*domain.Order")).Return(nil)
 
@@ -27,7 +27,7 @@ func TestCreateOrder(t *testing.T) {
 
 func TestUpdateOrderState_ValidTransition(t *testing.T) {
 	mockRepo := new(MockOrderRepository)
-	service := NewOrderService(mockRepo)
+	service := NewOrderService(mockRepo, nil)
 
 	orderID := ksuid.New()
 	existingOrder := &domain.Order{
@@ -50,7 +50,7 @@ func TestUpdateOrderState_ValidTransition(t *testing.T) {
 
 func TestUpdateOrderState_InvalidTransition(t *testing.T) {
 	mockRepo := new(MockOrderRepository)
-	service := NewOrderService(mockRepo)
+	service := NewOrderService(mockRepo, nil)
 
 	orderID := ksuid.New()
 	existingOrder := &domain.Order{

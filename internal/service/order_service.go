@@ -1,20 +1,27 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/domain"
+	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/infrastructure/rabbitmq"
 	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/repository"
 	"github.com/segmentio/ksuid"
 )
 
 type OrderService struct {
-	repo repository.OrderRepository
+	repo      repository.OrderRepository
+	publisher *rabbitmq.Client
 }
 
-func NewOrderService(repo repository.OrderRepository) *OrderService {
-	return &OrderService{repo: repo}
+func NewOrderService(repo repository.OrderRepository, publisher *rabbitmq.Client) *OrderService {
+	return &OrderService{
+		repo:      repo,
+		publisher: publisher,
+	}
 }
 
 func (s *OrderService) CreateOrder(originLat, originLon, destLat, destLon float64) (*domain.Order, error) {
@@ -32,6 +39,27 @@ func (s *OrderService) CreateOrder(originLat, originLon, destLat, destLon float6
 	if err := s.repo.CreateOrder(order); err != nil {
 		return nil, err
 	}
+
+	// Publish OrderCreated event
+	if s.publisher != nil {
+		event := domain.OrderCreatedEvent{
+			OrderID:   order.ID.String(),
+			OriginLat: order.OriginLat,
+			OriginLon: order.OriginLon,
+			DestLat:   order.DestLat,
+			DestLon:   order.DestLon,
+			Timestamp: time.Now(),
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := s.publisher.Publish(ctx, "order.created", event); err != nil {
+			log.Printf("Failed to publish OrderCreated event for order %s: %v", order.ID.String(), err)
+			// We don't return error here because order is already saved in DB.
+			// In a robust system, we would use Outbox Pattern.
+		}
+	}
+
 	return order, nil
 }
 

@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"time"
 
 	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/domain"
 	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/repository"
@@ -33,28 +32,19 @@ func (s *DispatcherService) ReserveJob(droneID string) (*domain.Order, error) {
 		return nil, errors.New("drone is not idle")
 	}
 
-	// 3. Get Next Pending Order
-	// TODO: In a real system, this should be a transaction to prevent race conditions.
-	// For this implementation, we rely on the database's atomic operations where possible,
-	// but a proper SELECT FOR UPDATE would be better.
-	order, err := s.orderRepo.GetNextPendingOrder()
+	// 3. Claim Next Pending Order (Atomic)
+	order, err := s.orderRepo.ClaimNextPendingOrder(drone.ID.String())
 	if err != nil {
-		return nil, errors.New("no pending orders available")
-	}
-
-	// 4. Assign Order (This part needs concurrency control in production)
-	order.Status = domain.OrderStatusReserved
-	order.DroneID = &drone.ID
-	order.UpdatedAt = time.Now()
-
-	if err := s.orderRepo.UpdateOrder(order); err != nil {
+		if err == domain.ErrNotFound {
+			return nil, errors.New("no pending orders available")
+		}
 		return nil, err
 	}
 
-	// 5. Update Drone Status
+	// 4. Update Drone Status
 	drone.Status = domain.DroneStatusDelivering
 	if err := s.droneRepo.UpdateDrone(drone); err != nil {
-		// Rollback order assignment if drone update fails (manual compensation)
+		// Rollback order assignment if drone update fails
 		order.Status = domain.OrderStatusPending
 		order.DroneID = nil
 		_ = s.orderRepo.UpdateOrder(order)

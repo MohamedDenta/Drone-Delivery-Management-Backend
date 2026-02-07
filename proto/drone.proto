@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package drone;
+
+option go_package = "github.com/MohamedDenta/Drone-Delivery-Management-Backend/proto/drone";
+
+service DroneService {
+  // Bi-directional streaming for location updates. 
+  // Drone sends location, server might send back configuration or ack.
+  rpc ReportLocation(stream LocationRequest) returns (stream LocationResponse);
+}
+
+message LocationRequest {
+  string drone_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message LocationResponse {
+  string message = 1;
+}

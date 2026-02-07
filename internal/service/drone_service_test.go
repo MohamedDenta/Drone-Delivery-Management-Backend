@@ -21,7 +21,7 @@ func (m *MockDroneStatusObserver) OnDroneStatusChanged(droneID string, oldStatus
 
 func TestRegisterDrone_Success(t *testing.T) {
 	mockRepo := new(MockDroneRepository)
-	service := NewDroneService(mockRepo)
+	service := NewDroneService(mockRepo, nil)
 
 	name := "Drone-01"
 
@@ -43,7 +43,7 @@ func TestRegisterDrone_Success(t *testing.T) {
 
 func TestRegisterDrone_DuplicateName(t *testing.T) {
 	mockRepo := new(MockDroneRepository)
-	service := NewDroneService(mockRepo)
+	service := NewDroneService(mockRepo, nil)
 
 	name := "Drone-01"
 	existingDrone := &domain.Drone{Name: name}
@@ -60,7 +60,7 @@ func TestRegisterDrone_DuplicateName(t *testing.T) {
 
 func TestUpdateLocation(t *testing.T) {
 	mockRepo := new(MockDroneRepository)
-	service := NewDroneService(mockRepo)
+	service := NewDroneService(mockRepo, nil)
 
 	id := ksuid.New()
 	existingDrone := &domain.Drone{ID: id, Latitude: 0, Longitude: 0}
@@ -79,7 +79,7 @@ func TestUpdateLocation(t *testing.T) {
 func TestUpdateStatus_BrokenRescue_NotifyObserver(t *testing.T) {
 	mockRepo := new(MockDroneRepository)
 	mockObserver := new(MockDroneStatusObserver)
-	service := NewDroneService(mockRepo)
+	service := NewDroneService(mockRepo, nil)
 	service.AddObserver(mockObserver)
 
 	droneID := ksuid.New()

@@ -17,8 +17,8 @@ func NewRecoveryHandler(orderRepo repository.OrderRepository) *RecoveryHandler {
 }
 
 func (h *RecoveryHandler) OnDroneStatusChanged(droneID string, oldStatus, newStatus domain.DroneStatus, currentLat, currentLon float64) {
-	// Broken Drone Recovery Logic
-	if newStatus == domain.DroneStatusBroken && oldStatus == domain.DroneStatusDelivering {
+	// Broken or Offline Drone Recovery Logic
+	if (newStatus == domain.DroneStatusBroken || newStatus == domain.DroneStatusOffline) && oldStatus == domain.DroneStatusDelivering {
 		// 1. Find the active order
 		order, err := h.orderRepo.GetActiveOrderByDroneID(droneID)
 		if err == nil {
@@ -32,12 +32,12 @@ func (h *RecoveryHandler) OnDroneStatusChanged(droneID string, oldStatus, newSta
 			order.UpdatedAt = time.Now()
 
 			if err := h.orderRepo.UpdateOrder(order); err != nil {
-				log.Printf("Failed to recover order for broken drone %s: %v", droneID, err)
+				log.Printf("Failed to recover order for %s drone %s: %v", newStatus, droneID, err)
 			} else {
-				log.Printf("Recovered order %s from broken drone %s", order.ID, droneID)
+				log.Printf("Recovered order %s from %s drone %s", order.ID, newStatus, droneID)
 			}
 		} else if err != domain.ErrNotFound {
-			log.Printf("Error finding active order for broken drone %s: %v", droneID, err)
+			log.Printf("Error finding active order for %s drone %s: %v", newStatus, droneID, err)
 		}
 	}
 }
