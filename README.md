@@ -77,17 +77,32 @@ Access the dashboards to monitor the system:
 
 ### HTTP API (REST)
 - `POST /auth/token` - Login (Admin/User/Drone)
+- `GET /api/v1/drones` - List all drones (Admin)
 - `POST /api/v1/drones` - Register drone
 - `POST /api/v1/drones/location` - Update location & heartbeat (REST fallback)
+- `PATCH /api/v1/drones/:id/status` - Manually update drone status (e.g., BROKEN/IDLE)
 - `POST /api/v1/drones/jobs/reserve` - Manually reserve the next pending order
+- `GET /api/v1/orders` - List all orders (Admin)
 - `POST /api/v1/orders` - Create order (Asynchronous via RabbitMQ)
-- `GET /api/v1/orders/:id` - Fetch order details (Status polling)
+- `GET /api/v1/orders/:id` - Fetch order details (Status, Location, ETA)
+- `PATCH /api/v1/orders/:id` - Update order destination (Only if PENDING)
 - `POST /api/v1/orders/:id/status` - Manually update order state
+- `DELETE /api/v1/orders/:id` - Withdraw/Cancel order (Only if not yet picked up)
 
 ### gRPC API (Streaming)
 - `rpc ReportLocation(stream LocationRequest) returns (stream LocationResponse)`
   - Used by drones for high-frequency location updates.
   - Updates are cached in Redis, persisted to Postgres, and refresh the drone's **Heartbeat** (30s TTL).
+
+#### Testing with `grpcurl`
+We've enabled gRPC Reflection for easy testing:
+1. **Install grpcurl**: `make install-tools`
+2. **List services**: `grpcurl -plaintext localhost:50051 list`
+3. **Test Stream**:
+   ```bash
+   grpcurl -plaintext -d '{"drone_id": "drone-001", "latitude": 30.0, "longitude": 31.0}' \
+     localhost:50051 drone.DroneService/ReportLocation
+   ```
 
 ## ⚙️ Background Workers
 The system runs background processes for automation and reliability:

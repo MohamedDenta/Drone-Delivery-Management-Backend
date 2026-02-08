@@ -101,3 +101,22 @@ func TestUpdateStatus_BrokenRescue_NotifyObserver(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 	mockObserver.AssertExpectations(t)
 }
+
+func TestListDrones(t *testing.T) {
+	mockRepo := new(MockDroneRepository)
+	service := NewDroneService(mockRepo, nil)
+
+	expectedDrones := []*domain.Drone{
+		{ID: ksuid.New(), Name: "Drone-01"},
+		{ID: ksuid.New(), Name: "Drone-02"},
+	}
+
+	mockRepo.On("GetAllDrones").Return(expectedDrones, nil)
+
+	drones, err := service.ListDrones()
+
+	assert.NoError(t, err)
+	assert.Len(t, drones, 2)
+	assert.Equal(t, "Drone-01", drones[0].Name)
+	mockRepo.AssertExpectations(t)
+}

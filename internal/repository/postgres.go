@@ -13,6 +13,7 @@ type DroneRepository interface {
 	GetDroneByName(name string) (*domain.Drone, error)
 	GetIdleDrones() ([]*domain.Drone, error)
 	GetActiveDrones() ([]*domain.Drone, error)
+	GetAllDrones() ([]*domain.Drone, error)
 	UpdateDrone(drone *domain.Drone) error
 }
 
@@ -22,7 +23,9 @@ type OrderRepository interface {
 	GetActiveOrderByDroneID(droneID string) (*domain.Order, error)
 	GetNextPendingOrder() (*domain.Order, error)
 	ClaimNextPendingOrder(droneID string) (*domain.Order, error)
+	GetAllOrders() ([]*domain.Order, error)
 	UpdateOrder(order *domain.Order) error
+	UpdateOrderCoords(id string, originLat, originLon, destLat, destLon float64) error
 }
 
 type PostgresRepository struct {
@@ -120,8 +123,28 @@ func (r *PostgresRepository) GetActiveDrones() ([]*domain.Drone, error) {
 	return drones, nil
 }
 
+func (r *PostgresRepository) GetAllDrones() ([]*domain.Drone, error) {
+	query := `SELECT id, name, status, latitude, longitude, created_at, updated_at FROM drones`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var drones []*domain.Drone
+	for rows.Next() {
+		var drone domain.Drone
+		err := rows.Scan(&drone.ID, &drone.Name, &drone.Status, &drone.Latitude, &drone.Longitude, &drone.CreatedAt, &drone.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		drones = append(drones, &drone)
+	}
+	return drones, nil
+}
+
 func (r *PostgresRepository) UpdateDrone(drone *domain.Drone) error {
-	query := `UPDATE drones SET status = $1, latitude = $2, longitude = $3 WHERE id = $4`
+	query := `UPDATE drones SET status = $1, latitude = $2, longitude = $3, updated_at = NOW() WHERE id = $4`
 	_, err := r.db.Exec(query, drone.Status, drone.Latitude, drone.Longitude, drone.ID)
 	return err
 }
@@ -199,8 +222,34 @@ func (r *PostgresRepository) ClaimNextPendingOrder(droneID string) (*domain.Orde
 	return &order, err
 }
 
+func (r *PostgresRepository) GetAllOrders() ([]*domain.Order, error) {
+	query := `SELECT id, status, origin_lat, origin_lon, dest_lat, dest_lon, drone_id, created_at, updated_at FROM orders`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []*domain.Order
+	for rows.Next() {
+		var order domain.Order
+		err := rows.Scan(&order.ID, &order.Status, &order.OriginLat, &order.OriginLon, &order.DestLat, &order.DestLon, &order.DroneID, &order.CreatedAt, &order.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, &order)
+	}
+	return orders, nil
+}
+
 func (r *PostgresRepository) UpdateOrder(order *domain.Order) error {
-	query := `UPDATE orders SET status = $1, drone_id = $2, updated_at = $3 WHERE id = $4`
-	_, err := r.db.Exec(query, order.Status, order.DroneID, order.UpdatedAt, order.ID)
+	query := `UPDATE orders SET status = $1, drone_id = $2, origin_lat = $3, origin_lon = $4, updated_at = $5 WHERE id = $6`
+	_, err := r.db.Exec(query, order.Status, order.DroneID, order.OriginLat, order.OriginLon, order.UpdatedAt, order.ID)
+	return err
+}
+
+func (r *PostgresRepository) UpdateOrderCoords(id string, originLat, originLon, destLat, destLon float64) error {
+	query := `UPDATE orders SET origin_lat = $1, origin_lon = $2, dest_lat = $3, dest_lon = $4, updated_at = NOW() WHERE id = $5`
+	_, err := r.db.Exec(query, originLat, originLon, destLat, destLon, id)
 	return err
 }

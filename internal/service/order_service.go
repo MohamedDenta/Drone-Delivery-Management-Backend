@@ -64,7 +64,43 @@ func (s *OrderService) CreateOrder(originLat, originLon, destLat, destLon float6
 }
 
 func (s *OrderService) GetOrder(id string) (*domain.Order, error) {
-	return s.repo.GetOrderByID(id)
+	order, err := s.repo.GetOrderByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return order, nil
+}
+
+func (s *OrderService) ListOrders() ([]*domain.Order, error) {
+	return s.repo.GetAllOrders()
+}
+
+func (s *OrderService) WithdrawOrder(id string) error {
+	order, err := s.repo.GetOrderByID(id)
+	if err != nil {
+		return err
+	}
+
+	if order.Status != domain.OrderStatusPending && order.Status != domain.OrderStatusReserved {
+		return errors.New("cannot withdraw order that is already picked up or finished")
+	}
+
+	order.Status = domain.OrderStatusCancelled
+	order.UpdatedAt = time.Now()
+	return s.repo.UpdateOrder(order)
+}
+
+func (s *OrderService) UpdateOrderCoords(id string, originLat, originLon, destLat, destLon float64) error {
+	order, err := s.repo.GetOrderByID(id)
+	if err != nil {
+		return err
+	}
+
+	if order.Status != domain.OrderStatusPending {
+		return errors.New("cannot update destination of an order that is already in progress")
+	}
+
+	return s.repo.UpdateOrderCoords(id, originLat, originLon, destLat, destLon)
 }
 
 func (s *OrderService) UpdateOrderState(id string, newState domain.OrderStatus) (*domain.Order, error) {
@@ -88,6 +124,10 @@ func (s *OrderService) UpdateOrderState(id string, newState domain.OrderStatus) 
 }
 
 func isValidTransition(current, next domain.OrderStatus) bool {
+	if next == domain.OrderStatusCancelled {
+		return current == domain.OrderStatusPending || current == domain.OrderStatusReserved
+	}
+
 	switch current {
 	case domain.OrderStatusPending:
 		return next == domain.OrderStatusReserved
@@ -95,7 +135,7 @@ func isValidTransition(current, next domain.OrderStatus) bool {
 		return next == domain.OrderStatusPickedUp
 	case domain.OrderStatusPickedUp:
 		return next == domain.OrderStatusDelivered || next == domain.OrderStatusFailed
-	case domain.OrderStatusFailed, domain.OrderStatusDelivered:
+	case domain.OrderStatusFailed, domain.OrderStatusDelivered, domain.OrderStatusCancelled:
 		return false // Terminal states
 	default:
 		return false

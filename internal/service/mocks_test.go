@@ -23,6 +23,14 @@ func (m *MockDroneRepository) GetActiveDrones() ([]*domain.Drone, error) {
 	return args.Get(0).([]*domain.Drone), args.Error(1)
 }
 
+func (m *MockDroneRepository) GetAllDrones() ([]*domain.Drone, error) {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Drone), args.Error(1)
+}
+
 func (m *MockDroneRepository) GetIdleDrones() ([]*domain.Drone, error) {
 	args := m.Called()
 	if args.Get(0) == nil {
@@ -94,7 +102,20 @@ func (m *MockOrderRepository) GetActiveOrderByDroneID(droneID string) (*domain.O
 	return args.Get(0).(*domain.Order), args.Error(1)
 }
 
+func (m *MockOrderRepository) GetAllOrders() ([]*domain.Order, error) {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*domain.Order), args.Error(1)
+}
+
 func (m *MockOrderRepository) UpdateOrder(order *domain.Order) error {
 	args := m.Called(order)
+	return args.Error(0)
+}
+
+func (m *MockOrderRepository) UpdateOrderCoords(id string, originLat, originLon, destLat, destLon float64) error {
+	args := m.Called(id, originLat, originLon, destLat, destLon)
 	return args.Error(0)
 }

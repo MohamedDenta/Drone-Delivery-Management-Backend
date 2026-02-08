@@ -20,6 +20,7 @@ import (
 	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/service"
 	"github.com/MohamedDenta/Drone-Delivery-Management-Backend/internal/telemetry"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -112,6 +113,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	droneGrpcServer := grpcHandler.NewDroneServer(droneService)
 	grpcHandler.Register(grpcServer, droneGrpcServer) // Ensure Register function exists in grpc package
+	reflection.Register(grpcServer)
 
 	go func() {
 		log.Printf("gRPC Server starting on port 50051")

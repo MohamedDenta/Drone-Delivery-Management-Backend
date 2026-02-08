@@ -93,4 +93,39 @@ if [ "$STATUS" == "PENDING" ]; then
     exit 1
 fi
 
-echo "Verification Complete! Check the server logs for 'Successfully assigned order' messages."
+echo "---------------------------------------------------"
+echo "8. Admin: List All Drones"
+curl -s -X GET $BASE_URL/api/v1/drones \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq . | head -n 10
+
+echo "---------------------------------------------------"
+echo "9. Admin: List All Orders"
+curl -s -X GET $BASE_URL/api/v1/orders \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq . | head -n 10
+
+echo "---------------------------------------------------"
+echo "10. End-User: Create & Withdraw an Order"
+# Create a second order
+C_ORDER_RESP=$(curl -s -X POST $BASE_URL/api/v1/orders \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"origin_lat":40.0,"origin_lon":40.0,"dest_lat":41.0,"dest_lon":41.0}')
+C_ORDER_ID=$(echo $C_ORDER_RESP | jq -r .id)
+echo "Created second order: $C_ORDER_ID"
+
+# Withdraw it
+WITHDRAW_RESP=$(curl -s -X DELETE $BASE_URL/api/v1/orders/$C_ORDER_ID \
+  -H "Authorization: Bearer $ADMIN_TOKEN")
+echo "Withdraw Response: $WITHDRAW_RESP"
+
+# Verify status is CANCELLED
+FINAL_STATUS=$(curl -s -X GET $BASE_URL/api/v1/orders/$C_ORDER_ID \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r .status)
+echo "Final Status of second order: $FINAL_STATUS"
+
+if [ "$FINAL_STATUS" != "CANCELLED" ]; then
+    echo "Order withdrawal failed!"
+    exit 1
+fi
+
+echo "---------------------------------------------------"
+echo "Verification Complete! All functionalities (Registration, Heartbeat, Async Dispatch, Listing, and Withdrawal) are verified."

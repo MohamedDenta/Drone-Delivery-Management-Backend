@@ -5,6 +5,9 @@ DB_URL=postgres://user:password@localhost:5433/drone_delivery?sslmode=disable
 run:
 	go run cmd/server/main.go
 
+install-tools:
+	go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+
 docker-up:
 	docker compose up -d --build
 

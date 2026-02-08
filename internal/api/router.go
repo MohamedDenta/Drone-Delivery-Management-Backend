@@ -26,14 +26,19 @@ func SetupRouter(
 	api.Use(middleware.AuthMiddleware())
 	{
 		// Drone Routes
+		api.GET("/drones", droneHandler.ListDrones)
 		api.POST("/drones", droneHandler.Register)
 		api.POST("/drones/location", droneHandler.UpdateLocation)
+		api.PATCH("/drones/:id/status", droneHandler.UpdateStatus)
 		api.POST("/drones/jobs/reserve", droneHandler.ReserveJob)
 
 		// Order Routes
+		api.GET("/orders", orderHandler.ListOrders)
 		api.POST("/orders", orderHandler.CreateOrder)
 		api.GET("/orders/:id", orderHandler.GetOrder)
+		api.PATCH("/orders/:id", orderHandler.UpdateDestination)
 		api.POST("/orders/:id/status", orderHandler.UpdateStatus)
+		api.DELETE("/orders/:id", orderHandler.WithdrawOrder)
 	}
 
 	return r

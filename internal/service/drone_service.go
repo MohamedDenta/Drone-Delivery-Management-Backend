@@ -100,3 +100,7 @@ func (s *DroneService) GetDrone(id string) (*domain.Drone, error) {
 func (s *DroneService) GetDroneByName(name string) (*domain.Drone, error) {
 	return s.repo.GetDroneByName(name)
 }
+
+func (s *DroneService) ListDrones() ([]*domain.Drone, error) {
+	return s.repo.GetAllDrones()
+}

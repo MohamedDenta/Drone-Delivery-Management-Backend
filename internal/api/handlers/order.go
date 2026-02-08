@@ -74,3 +74,44 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 
 	c.JSON(http.StatusOK, order)
 }
+
+func (h *OrderHandler) ListOrders(c *gin.Context) {
+	orders, err := h.orderService.ListOrders()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, orders)
+}
+
+func (h *OrderHandler) WithdrawOrder(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.orderService.WithdrawOrder(id); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "order withdrawn successfully"})
+}
+
+func (h *OrderHandler) UpdateDestination(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		OriginLat float64 `json:"origin_lat"`
+		OriginLon float64 `json:"origin_lon"`
+		DestLat   float64 `json:"dest_lat"`
+		DestLon   float64 `json:"dest_lon"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.orderService.UpdateOrderCoords(id, req.OriginLat, req.OriginLon, req.DestLat, req.DestLon)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "order destination updated successfully"})
+}

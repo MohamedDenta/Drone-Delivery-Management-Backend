@@ -36,6 +36,7 @@ const (
 	OrderStatusPickedUp  OrderStatus = "PICKED_UP"
 	OrderStatusDelivered OrderStatus = "DELIVERED"
 	OrderStatusFailed    OrderStatus = "FAILED"
+	OrderStatusCancelled OrderStatus = "CANCELLED"
 )
 
 // Order represents a delivery order
@@ -49,4 +50,9 @@ type Order struct {
 	DroneID   *ksuid.KSUID `json:"drone_id,omitempty"` // Nullable if not assigned
 	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
+
+	// Response-only fields (not stored in DB directly or calculated)
+	CurrentLat float64 `json:"current_lat,omitempty"`
+	CurrentLon float64 `json:"current_lon,omitempty"`
+	ETA        string  `json:"eta,omitempty"`
 }
