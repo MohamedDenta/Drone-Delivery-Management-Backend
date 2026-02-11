@@ -36,11 +36,11 @@ func (s *DroneServer) ReportLocation(stream pb.DroneService_ReportLocationServer
 		}
 
 		// Optional: Send Ack back
-		/*
-			if err := stream.Send(&pb.LocationResponse{Message: "Ack"}); err != nil {
-				return err
-			}
-		*/
+
+		if err := stream.Send(&pb.LocationResponse{Message: "Ack"}); err != nil {
+			return err
+		}
+
 	}
 }
 
