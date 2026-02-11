@@ -98,7 +98,7 @@ func (c *Client) Subscribe(queueName, routingKey string, handler func(body []byt
 	msgs, err := c.channel.Consume(
 		q.Name, // queue
 		"",     // consumer
-		false,  // auto-ack (we will manual ack)
+		false,  // auto-ack
 		false,  // exclusive
 		false,  // no-local
 		false,  // no-wait

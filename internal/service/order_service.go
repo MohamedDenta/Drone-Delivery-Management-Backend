@@ -55,8 +55,6 @@ func (s *OrderService) CreateOrder(originLat, originLon, destLat, destLon float6
 
 		if err := s.publisher.Publish(ctx, "order.created", event); err != nil {
 			log.Printf("Failed to publish OrderCreated event for order %s: %v", order.ID.String(), err)
-			// We don't return error here because order is already saved in DB.
-			// In a robust system, we would use Outbox Pattern.
 		}
 	}
 
